@@ -1,0 +1,19 @@
+# systemd unit template. Adjust paths, then:
+#   sudo cp google-ads-search-terms-bot.service /etc/systemd/system/
+#   sudo systemctl daemon-reload && sudo systemctl enable --now google-ads-search-terms-bot
+[Unit]
+Description=Google Ads search-terms / negative-keyword Telegram bot
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/google-ads-search-terms-bot
+ExecStart=/opt/google-ads-search-terms-bot/.venv/bin/python /opt/google-ads-search-terms-bot/bot_service.py
+Restart=always
+RestartSec=10
+StandardOutput=append:/opt/google-ads-search-terms-bot/data/bot.log
+StandardError=append:/opt/google-ads-search-terms-bot/data/bot.err.log
+
+[Install]
+WantedBy=multi-user.target

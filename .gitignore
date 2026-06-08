@@ -1,0 +1,12 @@
+.env
+google-ads.yaml
+*.json
+!client_secret.example.json
+data/*.db
+data/*.json
+data/*.log
+__pycache__/
+*.pyc
+.venv/
+venv/
+.pytest_cache/
