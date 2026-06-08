@@ -50,6 +50,62 @@ API and classifies terms with fixed, auditable rules you control in `src/rules.p
 No model decides what to add or block. Fully standalone — no external agent or
 service required.
 
+## How classification works (no LLM)
+
+Each search term runs through curated keyword lists, regex matching, and an ordered
+decision tree. Same input → same output, and every decision traces to a named rule.
+
+**1. Normalize** — lowercase + collapse whitespace (`"Owner  Operator"` → `owner operator`).
+
+**2. Match on word boundaries, not substrings** — a keyword only matches whole words:
+
+```python
+def _has(term, needle):
+    return re.search(rf"(?<![a-z]){re.escape(needle)}(?![a-z])", term) is not None
+
+_has("dry van owner operator", "van")  # True  — whole word
+_has("caravan dealer", "van")          # False — inside "caravan"
+```
+
+Negative matching is also plural-tolerant (`car hauler` catches `car haulers`).
+
+**3. Curated lists, each tagged with a reason + match type** (this is just data you edit):
+
+```python
+_add(["competitor_a", "competitor_b"], "broad",  "competitor brand")
+_add(["load board", "find loads"],     "phrase", "load-board intent")
+GOOD_INTENT_SIGNALS = ["apply", "application", "hiring", "needed"]
+AUDIENCE_SIGNALS    = ["owner operator", "cdl a", "otr"]
+```
+
+**4. An ordered decision tree — priority is the whole trick:**
+
+```python
+def classify(term):
+    t = _norm(term)
+    if _is_guarded(t):     return keep / keyword   # 1. protected terms win
+    if _is_brand(t):       return exact keyword    # 2. your brand
+    if _match_negative(t): return negative         # 3. junk beats intent
+    if _is_good_intent(t): return new keyword       # 4. audience AND intent
+    return neutral                                 # 5. leave alone
+```
+
+| Search term | Why | Result |
+|---|---|---|
+| `competitor_a owner operator application` | competitor (step 3) beats "application" | ➖ negative |
+| `dry van owner operator` | guard (step 1) protects it | ✅ kept |
+| `apply to be a driver` | audience + intent, no junk | ➕ new keyword |
+| `box truck driver` | wrong-vehicle list | ➖ negative |
+
+Good-intent requires **two** signals at once (an audience word *and* an intent word),
+so random queries don't become keywords.
+
+**Why rules instead of an LLM:** auditable (every call shows its `reason`), no
+hallucinations / cost / latency, fully under your control, and unit-tested — 
+`tests/test_rules.py` pins the must-never-block terms so changes can't silently
+regress. The trade-off is that it only knows what you encode — which is exactly why
+a human approves each proposal and why the guards exist.
+
 ## How it works
 
 ```
