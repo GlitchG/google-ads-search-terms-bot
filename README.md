@@ -43,6 +43,13 @@ makes expensive mistakes. This bot encodes the judgment:
 - **Human-in-the-loop.** Approve everything, reject everything, or page through and
   pick individual items. Self-alerts to Telegram on API/auth failures.
 
+## Does it use AI?
+
+**No LLM at runtime.** The bot is deterministic Python — it queries the Google Ads
+API and classifies terms with fixed, auditable rules you control in `src/rules.py`.
+No model decides what to add or block. Fully standalone — no external agent or
+service required.
+
 ## How it works
 
 ```
@@ -76,7 +83,8 @@ python bot_service.py         # run it; send /run or /ping in your chat
 ## Getting Google Ads API access
 
 You need a **developer token**, an **OAuth client**, a **refresh token**, and your
-**account IDs**.
+**account IDs**. Full step-by-step including the access *application* (what to write
+so it gets approved): **[docs/GOOGLE_ADS_API_ACCESS.md](docs/GOOGLE_ADS_API_ACCESS.md)**.
 
 1. **Developer token** — in your **Manager (MCC) account**: *Tools & Settings →
    API Center*. New tokens may need a short Basic Access application.
